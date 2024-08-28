@@ -16,7 +16,9 @@ def runi():
     driver.get('https://www.pottersschool.org/gp7/#/login')
 
     length = 0
+    length1 = 0
     tmp = 0
+    tmp1=0
     html = driver.page_source
 
     # Parse HTML with BeautifulSoup
@@ -24,13 +26,14 @@ def runi():
 
     # Find all divs with class 'PUBLIC ng-star-inserted'
     divs = soup.find_all('div', {'class': 'l-chat-history'})
-    while len(divs)==0:
+    names = soup.find_all('tr',{'class': 'ng-star-inserted'})
+    while len(divs)==0 or len(names)==0:
         html = driver.page_source
 
         # Parse HTML with BeautifulSoup
         soup = BeautifulSoup(html, 'html.parser')
         divs = soup.find_all('div', {'class': 'l-chat-history'})
-    names = soup.find_all('tr',{'class': 'ng-star-inserted'})
+    
 
     while True:
         # Get page source
@@ -42,6 +45,13 @@ def runi():
         # Find all divs with class 'PUBLIC ng-star-inserted'
         divs = soup.find_all('div', {'class': 'PUBLIC ng-star-inserted'})
         length = len(divs)
+        names = soup.find_all('tr',{'class': 'ng-star-inserted'})
+        for ns in names:
+            finded = ns.find("span")
+            if finded:
+                name_x= finded.text.strip()
+                if name_x not in statistics:
+                    statistics[name_x] = 0
         if tmp != length:
             try:
                 div = divs[length]
@@ -57,9 +67,8 @@ def runi():
                 username = user_span.text.strip()
                 message_text = text_span.text.strip()
 
-                statistics[username.replace(":", "").split(" ")[0]] += 1
+                statistics[username.replace(":", "")] += 1
         tmp = length
-
 app = dash.Dash(__name__)
 
 app.layout = html.Div(
