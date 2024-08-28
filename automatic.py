@@ -7,7 +7,10 @@ from selenium import webdriver
 import threading
 from bs4 import BeautifulSoup
 import plotly.graph_objs as go
-statistics = {"NaN":0}
+statistics = {}
+words={}
+words_counts={}
+avg={}
 def runi():
     global statistics
 
@@ -33,7 +36,7 @@ def runi():
         # Parse HTML with BeautifulSoup
         soup = BeautifulSoup(html, 'html.parser')
         divs = soup.find_all('div', {'class': 'l-chat-history'})
-    
+        names = soup.find_all('tr', {'class': 'ng-star-inserted'})
 
     while True:
         # Get page source
@@ -52,6 +55,9 @@ def runi():
                 name_x= finded.text.strip()
                 if name_x not in statistics:
                     statistics[name_x] = 0
+                    words[name_x] = 0
+                    avg[name_x] = 0
+                    words_counts[name_x]=0
         if tmp != length:
             try:
                 div = divs[length]
@@ -68,6 +74,10 @@ def runi():
                 message_text = text_span.text.strip()
 
                 statistics[username.replace(":", "")] += 1
+                print(len(message_text.split(" ")), statistics[username.replace(":", "")])
+                words[username.replace(":", "")] += len(message_text.split(" "))
+                avg[username.replace(":","")] = words[username.replace(":", "")]/statistics[username.replace(":", "")]
+
         tmp = length
 app = dash.Dash(__name__)
 
@@ -79,6 +89,7 @@ app.layout = html.Div(
             interval=1000,
             n_intervals=0
         ),
+
     ]
 )
 
@@ -89,7 +100,7 @@ app.layout = html.Div(
 )
 def update_graph_scatter(n):
     # Get page source
-    X = list(statistics.keys())
+    X = list(statistics.values())
     Y = list(statistics.values())
 
     data = plotly.graph_objs.Bar(
@@ -97,30 +108,15 @@ def update_graph_scatter(n):
         y=list(statistics.values()),
         name="Messages Sent"
     )
-
-    return {'data': [data],
-            'layout': go.Layout(xaxis=dict(range=[0, len(X)]), yaxis=dict(range=[0, max(Y, default=0)]), )}
-
+    data1 = plotly.graph_objs.Bar(
+        x=list(statistics.keys()),
+        y=list(avg.values()),
+        name="Average Message Length"
+    )
+    return {'data': [data,data1],
+            'layout': go.Layout(xaxis=dict(range=[0, len(X)]), yaxis=dict(range=[0, max(Y+list(avg.values()), default=0)]), )}
 
 if __name__ == '__main__':
-
-    choice1 = input("Do you want to load a student list file? [Y/n]")
-    if choice1.lower() == 'n':
-        print("Please enter your students' firstname one at a line. Please also enter your first name. Then, press Enter two times.")
-        while True:
-            n = input()
-            if n == "":
-                break
-            statistics[n] = 0
-        choice = input("Do you want to save this student list into a file? [Y/n]")
-        if choice.lower() == 'y':
-            name = input("Filename:")
-            open(name, 'w').writelines(list(statistics.keys()))
-    else:
-        name = input("Filename:")
-        students = open(name, 'r').readlines()
-        for x in students:
-            statistics[x.replace("\n","")] = 0
     t=threading.Thread(target=runi)
     t.start()
 
